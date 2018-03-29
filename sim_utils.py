@@ -23,3 +23,17 @@ def sde_sim(x0, t, f, g, nb):
         db = np.squeeze(b[k, :] - b[k - 1, :])
         x[k, :] = x[k - 1, :] + f_old * dt + np.dot(g_old, db)
     return x
+
+
+def ode_sim(x0, t, f):
+    x = np.zeros((t.size, x0.size))
+    x[0, :] = x0
+    for k in range(1, t.size):
+        t_old = t[k - 1]
+        t_new = t[k]
+        x_old = x[k - 1, :]
+        f_old = f(x_old, t_old)
+        dt = t_new - t_old
+        x[k, :] = x[k - 1, :] + f_old * dt
+    return x
+
