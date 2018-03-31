@@ -11,6 +11,7 @@ try:
 except:
     pass
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import matplotlib.cm as cmx
 
 
@@ -19,7 +20,7 @@ import matplotlib.cm as cmx
 alpha = 0.001
 mu = 1.0
 tb = 8.0
-xb_val = 0.2
+xb_val = 1.0
 xic = np.zeros(2) + 0.1
 t0 = 0
 t1 = 20
@@ -126,10 +127,14 @@ gu = np.zeros(nc)
 xl = np.ones(nv) * (-1000.0)
 xu = np.ones(nv) * 1000.0
 
+# Test ipopt function
+
 ipopt_utils.eval_f(x0, user_data)
 ipopt_utils.eval_grad_f(x0, user_data)
 ipopt_utils.eval_c(x0, user_data)
 ipopt_utils.eval_jac_c(x0, False, user_data)
+
+# Create and solve test problem with ipopt
 
 nlp = pyip.create(nv, xl, xu, nc, gl, gu, nz, 0,
                   ipopt_utils.eval_f,
@@ -141,7 +146,7 @@ x = res[0]
 s, q = ipopt_utils.unwrap(x, user_data)
 qt = np.append(q[0], q)
 
-# Plot
+# Plot and compare bvp- and local collocation method
 
 cmap_blue = cmx.get_cmap('Blues')
 cmap_green = cmx.get_cmap('Greens')
@@ -154,9 +159,12 @@ matplotlib.rc('axes', titlesize=fs + 15)
 matplotlib.rc('axes', labelsize=fs + 5)
 matplotlib.rc('legend', fontsize=fs)
 
+gs = gridspec.GridSpec(2, 1)
+gs.update(hspace=0.00)
+
 fig = plt.figure(figsize=(18, 7))
 
-ax1 = fig.add_subplot(211)
+ax1 = fig.add_subplot(gs[0])
 ax1.plot(t, xb[:, 0], label='$\overline{x}_1$', linewidth=lw, color=cmap_blue(0.80))
 ax1.plot(topt, xopt[0, :], label='$x_{1,true}$', linewidth=lw, color=cmap_green(0.80))
 ax1.plot(t, s[:, 0], label='$x_{1,ipopt}$', linewidth=lw, color=cmap_red(0.80), linestyle='-')
@@ -167,13 +175,13 @@ ax1.set_title('Verification of the Local Collocation Method')
 ax1.grid()
 ax1.legend(loc='lower right', ncol=3)
 
-ax2 = fig.add_subplot(212)
-ax2.plot(topt, uopt, label='$u_{true}$', linewidth=lw, color=cmap_blue(0.80))
+ax2 = fig.add_subplot(gs[1])
+ax2.plot(topt, uopt, label='$u_{true}$', linewidth=lw, color=cmap_green(0.80))
 ax2.step(tg, qt, label='$u_{ipopt}$', linewidth=lw, color=cmap_red(0.80), linestyle='-')
 ax2.set_ylabel('$u$')
 ax2.set_xlabel('Time')
 ax2.set_xlim(left=t0 - 0.1, right=t1 + 0.1)
-ax2.set_ylim(bottom=-4.1, top=2.1)
+ax2.set_ylim(bottom=-6, top=5)
 ax2.grid()
 ax2.legend(loc='upper right', ncol=2)
 
