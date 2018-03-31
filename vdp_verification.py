@@ -19,7 +19,7 @@ import matplotlib.cm as cmx
 
 alpha = 0.001
 mu = 1.0
-tb = 8.0
+tb = 10.0
 xb_val = 1.0
 xic = np.zeros(2) + 0.1
 t0 = 0
