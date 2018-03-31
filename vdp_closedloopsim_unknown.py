@@ -272,7 +272,7 @@ fig = plt.figure(figsize=(18, 7))
 ax1 = fig.add_subplot(111)
 _muest = np.append(zest[0, 2], zest[0:-1, 2])
 
-ax1.step(tobs, mu * np.ones(tobs.size), label='$\lambda$', color='black', linewidth=lw - 2)
+ax1.step(tobs, mu * np.ones(tobs.size), label='$\lambda$', color='black', linewidth=lw)
 ax1.step(tobs, _muest, label='$\lambda_{1,est}$', color=cmap_blue(0.80), linewidth=lw - 2)
 ax1.set_title('Set-Point Tracking ($\lambda$ unknown)')
 ax1.set_ylabel('$x_1$')
@@ -285,3 +285,29 @@ ax1.legend(loc='lower left', ncol=2)
 
 fig.savefig('/Users/nlbr/Dropbox/DTU Niclas Laursen Brok/papers/NMPC 2018/latex/fig/results/vdp_closedloop_unknown_fig3.eps',
             format='eps', dpi=1000)
+
+# Plot variance of estimates
+
+
+fig = plt.figure(figsize=(18, 7))
+
+ax1 = fig.add_subplot(111)
+ax11 = ax1.twinx()
+
+ln1 = ax1.step(tobs, np.append(vest[0, 0, 0], vest[0, 0, 0:-1]), label='Variance, $x_1$', color=cmap_blue(0.80), linewidth=lw - 2)
+ln2 = ax1.step(tobs, np.append(vest[1, 1, 0], vest[1, 1, 0:-1]), label='Variance, $x_2$', color=cmap_green(0.80), linewidth=lw - 2)
+ln3 = ax11.step(tobs, np.append(vest[2, 2, 0], vest[2, 2, 0:-1]), label='Variance, $\lambda$', color=cmap_red(0.80), linewidth=lw - 2)
+ax1.set_xlim(left=t0 - 0.2, right=ts_end + 0.2)
+ax1.set_xlabel('Time')
+ax1.set_ylabel('State Variance')
+ax11.set_ylabel('Parameter Variance')
+ax1.set_title('Variance of Estimates')
+ax1.grid()
+
+lns = ln1 + ln2 + ln3
+labs = [l.get_label() for l in lns]
+ax1.legend(lns, labs, loc='lower right', ncol=3)
+
+fig.savefig('/Users/nlbr/Dropbox/DTU Niclas Laursen Brok/papers/NMPC 2018/latex/fig/results/vdp_closedloop_unknown_fig4.eps',
+            format='eps', dpi=1000)
+
