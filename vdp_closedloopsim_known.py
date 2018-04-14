@@ -19,7 +19,8 @@ import matplotlib.cm as cmx
 
 alpha = 0.001
 mu = 1.0
-tb = 10.0
+tb1 = 10.0
+tb2 = 20.0
 xb_val = 1.0
 xic = np.zeros(2) + 1.0
 t0 = 0
@@ -29,12 +30,12 @@ nu = 1
 
 # Define sampling and simulation horizons
 
-nobs = 80
+nobs = 105
 nsim = 100
-ds = 0.25
+ds = 0.395
 ts_end = nobs * ds
 tobs = np.linspace(0, ts_end, nobs + 1)
-vobs = np.eye(2) / 5
+vobs = np.eye(2) / 50
 yobs = np.zeros((nobs + 1, nx))
 ytrue = np.zeros((nobs + 1, nx))
 ytrues = np.zeros((0, nx))
@@ -49,10 +50,10 @@ nb = 2
 
 gmod = np.zeros((2, 2))
 gmod[0, 0] = 0.00
-gmod[1, 1] = 0.25
+gmod[1, 1] = 0.15
 gekf = np.zeros((3, 3))
 gekf[0, 0] = 0.00
-gekf[1, 1] = 0.25
+gekf[1, 1] = 0.15
 gekf[2, 2] = 0.00
 muest = mu
 
@@ -113,12 +114,16 @@ for k in range(1, nobs + 1):
     _t0 = (k - 1) * ds
     for _k in range(0, t.size):
         _t = t[_k] + _t0
-        if _t <= tb:
+        if _t <= tb1:
             _xb[_k, 0] = 0.0
             _xb[_k, 1] = 0.0
-        elif tb < _t:
+        elif (tb1 < _t) & (_t <= tb2):
             _xb[_k, 0] = xb_val
             _xb[_k, 1] = 0.0
+        elif tb2 <= _t:
+            _xb[_k, 0] = 0.0
+            _xb[_k, 1] = 0.0
+        _xb[_k, 0] = np.sin(_t)
     # Make optimization
     _xic = zold[0:2]
     _mu = zold[2]
@@ -171,20 +176,26 @@ cmap_green = cmx.get_cmap('Greens')
 cmap_red = cmx.get_cmap('Reds')
 lw = 4.0
 fs = 15
+ms = 10
 matplotlib.rc('xtick', labelsize=fs)
 matplotlib.rc('ytick', labelsize=fs)
 matplotlib.rc('axes', titlesize=fs + 15)
-matplotlib.rc('axes', labelsize=fs + 5)
-matplotlib.rc('legend', fontsize=fs)
+matplotlib.rc('axes', labelsize=fs + 10)
+matplotlib.rc('legend', fontsize=fs + 3)
+matplotlib.rc('font', **{'family': 'sans-serif', 'sans-serif': ['Verdana']})
+matplotlib.rc('text', usetex=True)
 
 # Compute xb1
 xb1s = np.zeros(ttrues.size)
 for k in range(0, xb1s.size):
     _t = ttrues[k]
-    if _t <= tb:
+    if _t <= tb1:
         xb1s[k] = 0.0
-    elif tb < _t:
+    elif (tb1 < _t) & (_t <= tb2):
         xb1s[k] = xb_val
+    elif tb2 <= _t:
+        xb1s[k] = 0.0
+    xb1s[k] = np.sin(_t)
 
 # Compute implemented control signals
 us = np.zeros(ttrues.size)
@@ -195,71 +206,65 @@ for k in range(0, us.size):
     _t0 = tobs[0:-1][_obsid][0]
 
     def _uopt(__t):
-        _tid = ((__t - _t0) <= tg[1:]) & (tg[0:-1] <= (__t - _t0))
+        _tid = ((__t - _t0) < tg[1:]) & (tg[0:-1] <= (__t - _t0))
         _qt = _qopt[_tid]
         return np.squeeze(_qt[0])
 
     us[k] = _uopt(_t)
 
-gs = gridspec.GridSpec(2, 1)
+gs = gridspec.GridSpec(2, 2)
 gs.update(hspace=0.00)
 
 # Plot state- and control signals
+
+_tf = 40
+_tid = ttrues <= _tf
 
 fig = plt.figure(figsize=(18, 7))
 
 ax1 = fig.add_subplot(gs[0])
 
-ax1.plot(ttrues, xb1s, label='$\overline{x}_1$', color='black', linewidth=lw)
-ax1.plot(ttrues, ytrues[:, 0], label='$x_1$', color=cmap_blue(0.80), linewidth=lw - 2)
-ax1.plot(tobs, yobs[:, 0], 'o', label='$x_{1,obs}$', color=cmap_green(0.80))
-ax1.plot(tobs, zest[:, 0], 'x', label='$x_{1,est}$', color=cmap_red(0.80))
-ax1.set_title('Set-Point Tracking ($\lambda$ known)')
+ax1.plot(ttrues[_tid], xb1s[_tid], label='$\overline{x}_1$', color='black', linewidth=lw)
+ax1.plot(ttrues[_tid], ytrues[_tid, 0], label='$x_1$', color=cmap_blue(0.80), linewidth=lw - 2)
+#ax1.plot(tobs, yobs[:, 0], 'o', label='$x_{1,obs}$', color=cmap_green(0.80), markersize=ms)
+#ax1.plot(tobs, zest[:, 0], 'x', label='$x_{1,est}$', color=cmap_red(0.80), markersize=ms)
 ax1.set_ylabel('$x_1$')
 ax1.tick_params(labelbottom='off')
-ax1.set_xlim(left=t0 - 0.2, right=ts_end + 0.2)
+ax1.set_xlim(left=t0 - 0.2, right=_tf + 0.2)
+ax1.set_ylim(bottom=-1.1, top=2.0)
 ax1.grid()
-ax1.legend(loc='lower right', ncol=4)
+ax1.legend(loc='upper right', ncol=4)
 
-ax2 = fig.add_subplot(gs[1])
-ax22 = ax2.twinx()
+ax2 = fig.add_subplot(gs[2])
 
-ax22.step(ttrues, us, label='$u$', color='black', linewidth=lw - 2)
-ax22.set_ylabel('$u$')
-ax22.set_ylim(top=10, bottom=-10)
-ax2.plot(ttrues, ytrues[:, 1], label='$x_2$', color=cmap_blue(0.80), linewidth=lw - 2)
-ax2.plot(tobs, yobs[:, 1], 'o', label='$x_{2,obs}$', color=cmap_green(0.80))
-ax2.plot(tobs, zest[:, 1], 'x', label='$x_{2,est}$', color=cmap_red(0.80))
-ax2.set_ylabel('$x_2$')
+ax2.step(ttrues[_tid], us[_tid], label='$u$', color=cmap_red(0.80), linewidth=lw - 2)
+ax2.set_ylabel('$u$', labelpad=-10)
+ax2.set_ylim(top=8, bottom=-8)
+#ax2.plot(ttrues[_tid], ytrues[_tid, 1], label='$x_2$', color=cmap_blue(0.80), linewidth=lw - 2)
+#ax2.plot(tobs, yobs[:, 1], 'o', label='$x_{2,obs}$', color=cmap_green(0.80), markersize=ms)
+#ax2.plot(tobs, zest[:, 1], 'x', label='$x_{2,est}$', color=cmap_red(0.80), markersize=ms)
+#ax2.set_ylabel('$x_2$')
 ax2.set_xlabel('Time')
-ax2.set_xlim(left=t0 - 0.2, right=ts_end + 0.2)
+#ax2.set_xlim(left=t0 - 0.2, right=_tf + 0.2)
 ax2.grid()
 ax2.legend(loc='lower right', ncol=4)
-ax22.legend(loc='upper right')
-
-fig.savefig('/Users/nlbr/Dropbox/DTU Niclas Laursen Brok/papers/NMPC 2018/latex/fig/results/vdp_closedloop_known_fig1.eps',
-            format='eps', dpi=1000)
+#ax22.legend(loc='upper right')
 
 # Plot state-space in time-interval near set-point change
 
-tlowid = 0
-tuppid = 80
-tlow = tobs[tlowid]
-tupp = tobs[tuppid]
-_sopt = sopt[:, :, tlowid]
-_tsid = (tlow <= ttrues) & (ttrues <= tupp)
+ax3 = fig.add_subplot(gs[1::2])
 
-fig = plt.figure(figsize=(18, 7))
+ax3.plot(ytrues[_tid, 0], ytrues[_tid, 1], color='black', linewidth=lw - 1)
+ax3.set_xlabel('$x_1$')
+ax3.set_ylabel('$x_2$', labelpad=-7)
+ax3.grid()
 
-ax1 = fig.add_subplot(111)
+fig.suptitle('Set-Point Tracking ($\lambda$ known)', fontsize=fs + 20)
 
-ax1.plot(_sopt[0:(t.size - 50), 0], _sopt[0:(t.size - 50), 1], color='black', linewidth=lw - 1, label='Expected Trajectory')
-ax1.plot(ytrues[_tsid, 0], ytrues[_tsid, 1], color=cmap_red(0.80), linewidth=lw - 1, label='Realiaed Trajectory')
-ax1.set_xlabel('$x_1$')
-ax1.set_ylabel('$x_2$')
-ax1.set_title('State-Space ($\lambda$ known)'.format(tlow, tupp))
-ax1.legend(loc='lower right')
-ax1.grid()
+fig.show()
 
-fig.savefig('/Users/nlbr/Dropbox/DTU Niclas Laursen Brok/papers/NMPC 2018/latex/fig/results/vdp_closedloop_known_fig2.eps',
-            format='eps', dpi=1000)
+fig.savefig('/Users/nlbr/Dropbox/DTU Niclas Laursen Brok/papers/NMPC 2018/latex_nlbr_v2/fig/results/vdp_closedloop_known_fig1.eps',
+            format='eps', dpi=1000, bbox_inches='tight')
+
+#fig.savefig('/Users/nlbr/Dropbox/DTU Niclas Laursen Brok/papers/NMPC 2018/latex/fig/results/vdp_closedloop_known_fig2.eps',
+#            format='eps', dpi=1000)
